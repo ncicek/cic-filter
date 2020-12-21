@@ -6,7 +6,7 @@ module decimator (
     o_ready
     );
 
-    parameter W=5, M=5;
+    parameter W=5, R=5;
 
     input wire i_clk;
     input wire i_ready;
@@ -20,7 +20,7 @@ module decimator (
             i_ready_counter <= i_ready_counter + 1'b1;
         end
 
-        if (i_ready_counter >= (M - 1)) begin
+        if (i_ready_counter >= (R - 1)) begin
             i_ready_counter <= 32'b0;
             o_data <= i_data;
             o_ready <= 1'b1;

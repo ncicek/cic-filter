@@ -6,7 +6,7 @@ module comb (
     o_ready
     );
 
-    parameter IW=2, OW=5, M=5;
+    parameter IW=2, OW=5, N=5;
 
     input wire i_clk;
     input wire i_ready;
@@ -16,17 +16,17 @@ module comb (
 
     integer i;
 
-    reg signed [(IW-1):0] delay_line [(M-1):0];
+    reg signed [(IW-1):0] delay_line [(N-1):0];
     //sign_extend = {(OW-IW){delay_line[0][IW-1]}, delay_line[0]}
     //assign o_data = {{(OW-IW){i_data[IW-1]}}, i_data} - {{(OW-IW){delay_line[M-1][IW-1]}}, delay_line[M-1]};
 
     always @(posedge i_clk) begin
         if (i_ready) begin
             delay_line[0] <= i_data;
-            for (i=1; i<M; i=i+1) begin
+            for (i=1; i<N; i=i+1) begin
                 delay_line[i] <= delay_line[i-1];
             end
-            o_data <= {{(OW-IW){i_data[IW-1]}}, i_data} - {{(OW-IW){delay_line[M-1][IW-1]}}, delay_line[M-1]};
+            o_data <= {{(OW-IW){i_data[IW-1]}}, i_data} - {{(OW-IW){delay_line[N-1][IW-1]}}, delay_line[N-1]};
             o_ready <= 1'b1;
         end else begin
             o_ready <= 1'b0;

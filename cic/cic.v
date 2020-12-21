@@ -7,7 +7,7 @@ module cic (
     o_ready
     );
 
-    parameter IW=2, OW=16, M=5;
+    parameter IW=2, OW=16, R=8;
 
     input wire i_clk, i_reset;
     input wire signed [(IW-1):0] i_data;
@@ -20,8 +20,7 @@ module cic (
     wire integrated_ready;
     integrator #(
         .IW(IW),
-        .OW(OW),
-        .M(M)) 
+        .OW(OW))
     integrator_0 (
         .i_clk(i_clk),
         .i_data(i_data),
@@ -33,7 +32,7 @@ module cic (
     wire decimated_ready;
     wire signed [(OW-1):0] decimated_data;
     decimator #(.W(OW),
-                .M(M)) 
+                .R(R)) 
     decimator_0 (
         .i_clk(i_clk),
         .i_data(integrated_data),
@@ -45,7 +44,7 @@ module cic (
     comb #(
         .IW(OW),
         .OW(OW),
-        .M(M)) 
+        .N(1*R/R)) 
     comb_0 (
         .i_clk(i_clk),
         .i_data(decimated_data),

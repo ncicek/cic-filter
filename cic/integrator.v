@@ -6,7 +6,7 @@ module integrator (
     o_ready
     );
 
-    parameter IW=2, OW=5, M=5;
+    parameter IW=2, OW=5;
 
     input wire i_clk;
     input wire i_ready;
