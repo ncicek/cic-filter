@@ -7,7 +7,8 @@ module cic (
     o_ready
     );
 
-    parameter IW=2, OW=16, R=8;
+    //OW = IW+ceil(M*log_2(R)) https://www.dsprelated.com/showarticle/1337.php
+    parameter IW=2, OW=128, R=100, M=10;
 
     input wire i_clk, i_reset;
     input wire signed [(IW-1):0] i_data;
@@ -15,44 +16,68 @@ module cic (
     output wire signed [(OW-1):0] o_data;
     output wire o_ready;
 
+    //INTEGRATOR
+    /* verilator lint_off UNOPTFLAT */
+    wire signed [(OW-1):0] integrator_data [0:M];
+    wire integrator_ready [0:M];
+    assign integrator_data[0] = {{(OW-IW){i_data[IW-1]}},i_data};
+    assign integrator_ready[0] = i_ready;
 
-    wire signed [(OW-1):0] integrated_data;
-    wire integrated_ready;
-    integrator #(
-        .IW(IW),
-        .OW(OW))
-    integrator_0 (
-        .i_clk(i_clk),
-        .i_data(i_data),
-        .i_ready(i_ready),
-        .o_data(integrated_data),
-        .o_ready(integrated_ready)
-    ); 
+    genvar i;
+    generate
+        for (i=1; i<=M; i++) begin
 
-    wire decimated_ready;
-    wire signed [(OW-1):0] decimated_data;
+            integrator #(
+                .IW(OW),
+                .OW(OW))
+            integrator_inst (
+                .i_clk(i_clk),
+                .i_data(integrator_data[i-1]),
+                .i_ready(integrator_ready[i-1]),
+                .o_data(integrator_data[i]),
+                .o_ready(integrator_ready[i])
+        ); 
+        end
+    endgenerate
+    /* verilator lint_on UNOPTFLAT */
+
+    //DECIMATOR
+    wire decimator_ready;
+    wire signed [(OW-1):0] decimator_data;
     decimator #(.W(OW),
                 .R(R)) 
     decimator_0 (
         .i_clk(i_clk),
-        .i_data(integrated_data),
-        .i_ready(integrated_ready),
-        .o_data(decimated_data),
-        .o_ready(decimated_ready)
+        .i_data(integrator_data[M]),
+        .i_ready(integrator_ready[M]),
+        .o_data(decimator_data),
+        .o_ready(decimator_ready)
     );
 
-    comb #(
-        .IW(OW),
-        .OW(OW),
-        .N(1*R/R)) 
-    comb_0 (
-        .i_clk(i_clk),
-        .i_data(decimated_data),
-        .i_ready(decimated_ready),
-        .o_data(o_data),
-        .o_ready(o_ready)
-    );
+    //COMB
+    wire signed [(OW-1):0] comb_data [0:M];
+    wire comb_ready [0:M];
+    assign comb_data[0] = decimator_data;
+    assign comb_ready[0] = decimator_ready;
+    genvar j;
+    generate
+        for (j=1; j<=M; j++) begin
+            comb #(
+                .IW(OW),
+                .OW(OW),
+                .N(1*R/R)) 
+            comb_0 (
+                .i_clk(i_clk),
+                .i_data(comb_data[j-1]),
+                .i_ready(comb_ready[j-1]),
+                .o_data(comb_data[j]),
+                .o_ready(comb_ready[j])
+            );
+        end
+    endgenerate
 
+    assign o_data = comb_data[M];
+    assign o_ready = comb_ready[M];
 
     `ifdef COCOTB_SIM
     initial begin
